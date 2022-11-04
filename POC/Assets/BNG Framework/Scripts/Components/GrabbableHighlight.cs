@@ -42,11 +42,12 @@ namespace BNG {
             }
         }
         public void HighlightItem() {
-            // Enable your highlight here
+            this.GetComponent<Outline>().enabled = true;
         }
 
         public void UnhighlightItem() {
             // Disable your highlight here
+            this.GetComponent<Outline>().enabled = false;
         }
     }
 }
