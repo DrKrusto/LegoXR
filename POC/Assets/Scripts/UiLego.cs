@@ -6,6 +6,7 @@ using System.Linq;
 public class UiLego : MonoBehaviour
 {
     public GameObject[] Lego;
+    public Material[] LegoMaterial;
     private int index = 0;
 
     public int Index 
@@ -74,5 +75,15 @@ public class UiLego : MonoBehaviour
     public void DesactivateUI()
     {
         this.gameObject.SetActive(false);
+    }
+
+    public void SetMaterial(int color)
+    {
+        foreach (var lego in Lego)
+        {
+            lego.GetComponent<MeshRenderer>().material = LegoMaterial[color];
+        }
+        ChangePage(Index);
+
     }
 }
