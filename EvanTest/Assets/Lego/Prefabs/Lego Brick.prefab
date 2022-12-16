@@ -104,7 +104,7 @@ GameObject:
   - component: {fileID: 8685621960006262208}
   m_Layer: 0
   m_Name: Bottom points
-  m_TagString: Untagged
+  m_TagString: SnapPointNegative
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
@@ -139,7 +139,7 @@ GameObject:
   - component: {fileID: 5896673731729747900}
   m_Layer: 0
   m_Name: Top points
-  m_TagString: Untagged
+  m_TagString: SnapPointPositive
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
@@ -440,7 +440,7 @@ MonoBehaviour:
   BeingHeld: 0
   GrabButton: 2
   Grabtype: 2
-  GrabPhysics: 4
+  GrabPhysics: 3
   GrabMechanic: 1
   GrabSpeed: 15
   RemoteGrabbable: 0
@@ -449,7 +449,7 @@ MonoBehaviour:
   ThrowForceMultiplier: 2
   ThrowForceMultiplierAngular: 1.5
   BreakDistance: 0
-  HideHandGraphics: 0
+  HideHandGraphics: 1
   ParentToHands: 0
   ParentHandModel: 1
   SnapHandModel: 1
@@ -507,7 +507,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   snapPoints: []
-  snapRadius: 0.1
+  snapRadius: 0.05
   snapHighlightMesh: {fileID: 10207, guid: 0000000000000000e000000000000000, type: 0}
   snapHighlightMaterial: {fileID: 2100000, guid: 6cb2b51b2677c31469ca50c06d85dde9,
     type: 2}

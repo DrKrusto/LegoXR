@@ -2,6 +2,7 @@ using BNG;
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
+using UnityEditor.UI;
 using UnityEngine;
 
 public class SnapPoint : MonoBehaviour
@@ -10,16 +11,18 @@ public class SnapPoint : MonoBehaviour
     private MeshRenderer meshRenderer;
     private SphereCollider sphereCollider;
     private Transform parentBrick;
+    private SnapPointType snapPointType;
     private float snapRadius = .1f;
     protected SnapPoint snappedTo;
 
     private void Update()
     {
-        var collider = Physics.OverlapSphere(transform.position, snapRadius).Where(r => CanBeSnapped(r)).FirstOrDefault();
-        meshRenderer.enabled = CanBeSnapped(collider);
+        var collider = Physics.OverlapSphere(transform.position, snapRadius)
+            .Where(r => SnapPoint.CanBeSnapped(this, r)).FirstOrDefault();
+        meshRenderer.enabled = collider == null ? false : true;
     }
 
-    public void ParameterSnapPoint(Transform parent, Mesh mesh, Material material, float snapRadius)
+    public void ParameterSnapPoint(Transform parent, Mesh mesh, Material material, float snapRadius, SnapPointType snapPointType)
     {
         meshFilter = gameObject.AddComponent<MeshFilter>();
         meshRenderer = gameObject.AddComponent<MeshRenderer>();
@@ -28,47 +31,48 @@ public class SnapPoint : MonoBehaviour
         meshFilter.mesh = mesh;
         meshRenderer.material = material;
         meshRenderer.enabled = false;
-        sphereCollider.radius = 1;
+        meshRenderer.receiveShadows = false;
+        meshRenderer.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+        sphereCollider.radius = snapRadius;
         parentBrick = parent;
-        transform.localScale *= snapRadius;
+        transform.localScale *= (snapRadius*5);
+        this.snapPointType = snapPointType;
     }
 
-    public void SnapToSnapPoint(SnapPoint snapPoint)
+    public void TemporarySnap(SnapPoint snapPoint)
     {
         snappedTo = snapPoint;
         snapPoint.snappedTo = this;
     }
 
-    public void UnSnap()
+    public void TemporaryUnSnap()
     {
         snappedTo.snappedTo = null;
         snappedTo = null;
     }
 
-    private bool CanBeSnapped(Collider other)
+    static public bool CanBeSnapped(SnapPoint snapPoint, Collider other)
     {
         try
         {
-            var otherParent = other.gameObject.GetComponentInParent<SnapPoint>().parentBrick;
-            var beingHeld = otherParent.GetComponent<Grabbable>().BeingHeld || parentBrick.GetComponent<Grabbable>().BeingHeld;
-            var isNotSameCollider = other.transform != transform;
+            var otherSnapPoint = other.gameObject.GetComponentInParent<SnapPoint>();
+            var beingHeld = otherSnapPoint.parentBrick.GetComponent<Grabbable>().BeingHeld || snapPoint.parentBrick.GetComponent<Grabbable>().BeingHeld;
+            var isNotSameCollider = other.transform != snapPoint.transform;
             var isSnapPoint = other.tag == "SnapPoint";
-            var isNotFromSameBrick = otherParent != parentBrick;
-            return beingHeld && isNotSameCollider && isSnapPoint && isNotFromSameBrick;
+            var isNotFromSameBrick = otherSnapPoint.parentBrick != snapPoint.parentBrick;
+            var isFree = snapPoint.snappedTo == null && otherSnapPoint.snappedTo == null;
+            var isOpposite = snapPoint.snapPointType != otherSnapPoint.snapPointType;
+            return beingHeld && isNotSameCollider && isSnapPoint && isNotFromSameBrick && isFree && isOpposite;
         }
         catch
         {
             return false;
         }
     }
+}
 
-    private void OnTriggerEnter(Collider other)
-    {
-        if (CanBeSnapped(other)) meshRenderer.enabled = true;
-    }
-
-    private void OnTriggerExit(Collider other)
-    {
-        if (CanBeSnapped(other)) meshRenderer.enabled = false;
-    }
+public enum SnapPointType
+{
+    Positive,
+    Negative
 }

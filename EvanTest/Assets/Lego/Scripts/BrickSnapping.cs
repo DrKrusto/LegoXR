@@ -34,24 +34,11 @@ public class BrickSnapping : MonoBehaviour
 
     void Snap()
     {
-        if (snapPointsColliding.Count > 0) return;
-        if (snapPointsColliding.Count == 1)
-        {
-            // TODO
-            return;
-        }
-
-        foreach (var pairOfSnapPoints in snapPointsColliding)
-        {
-
-        }
-
-        Transform firstCubeSnapPoint1 = snapPointsColliding[0].Item1.transform;
-        Transform firstCubeSnapPoint2 = snapPointsColliding[1].Item1.transform;
-        Transform secondCubeSnapPoint1 = snapPointsColliding[0].Item2.transform;
-        Transform secondCubeSnapPoint2 = snapPointsColliding[1].Item2.transform;
-        transform.position = secondCubeSnapPoint1.position + (transform.position - firstCubeSnapPoint1.position);
-        transform.rotation = secondCubeSnapPoint1.GetComponentInParent<BrickSnapping>().transform.rotation;
+        GetComponent<Rigidbody>().isKinematic = true;
+        GetComponent<Collider>().enabled = false;
+        var collidedSnapPoints = snapPointsColliding.Select(p => p.Item2.transform.position).ToArray();
+        var position = FindMiddleVector(collidedSnapPoints);
+        transform.position = position;
     }
 
     void ParameterSnapPoints()
@@ -60,7 +47,8 @@ public class BrickSnapping : MonoBehaviour
         foreach (var snapPoint in snapPoints)
         {
             var snapPointController = snapPoint.AddComponent<SnapPoint>();
-            snapPointController.ParameterSnapPoint(transform, snapHighlightMesh, snapHighlightMaterial, snapRadius);
+            var snapPointType = snapPoint.transform.parent.tag == "SnapPointPositive" ? SnapPointType.Positive : SnapPointType.Negative;
+            snapPointController.ParameterSnapPoint(transform, snapHighlightMesh, snapHighlightMaterial, snapRadius, snapPointType);
         }
     }
 
@@ -68,16 +56,16 @@ public class BrickSnapping : MonoBehaviour
     {
         if (grabComponent.BeingHeld)
         {
-            snapPointsColliding.Clear();
+            ClearSnapPoints();
             foreach (var snapPoint in snapPoints.Select(r => r.GetComponent<SnapPoint>()))
             {
-                var collidedSnapPoint = Physics.OverlapSphere(snapPoint.transform.position, snapRadius)
-                    .Where(r => r.tag == "SnapPoint" && r.gameObject != snapPoint.gameObject && r.transform.parent != transform.parent)
-                    .Select(r => r.GetComponent<SnapPoint>())
-                    .FirstOrDefault();
-                if (!collidedSnapPoint) continue;
-                snapPoint.SnapToSnapPoint(collidedSnapPoint);
-                snapPointsColliding.Add(new Tuple<SnapPoint, SnapPoint>(snapPoint, collidedSnapPoint));
+                //var collidedSnapPoint = Physics.OverlapSphere(snapPoint.transform.position, snapRadius)
+                //    .Where(r => SnapPoint.CanBeSnapped(snapPoint, r))
+                //    .Select(r => r.GetComponent<SnapPoint>())
+                //    .FirstOrDefault();
+                //if (!collidedSnapPoint) continue;
+                //snapPoint.TemporarySnap(collidedSnapPoint);
+                //snapPointsColliding.Add(new Tuple<SnapPoint, SnapPoint>(snapPoint, collidedSnapPoint));
             }
         }
         else
@@ -87,5 +75,24 @@ public class BrickSnapping : MonoBehaviour
                 //Snap();
             }
         }
+    }
+
+    Vector3 FindMiddleVector(Vector3[] points)
+    {
+        Vector3 totalPoints = new();
+        foreach (var point in points)
+        {
+            totalPoints += point;
+        }
+        return totalPoints / points.Length;
+    }
+
+    void ClearSnapPoints()
+    {
+        foreach (var snapPoints in snapPointsColliding)
+        {
+            snapPoints.Item1.TemporaryUnSnap();
+        }
+        snapPointsColliding.Clear();
     }
 }
