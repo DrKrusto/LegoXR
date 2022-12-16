@@ -8,8 +8,9 @@ using System.Runtime.ConstrainedExecution;
 
 public class BrickSnapping : MonoBehaviour
 {
+    #region Variables
     [HideInInspector]
-    public List<GameObject> snapPoints;
+    public List<SnapPoint> snapPoints;
 
     [SerializeField]
     public float snapRadius;
@@ -19,7 +20,11 @@ public class BrickSnapping : MonoBehaviour
     public Material snapHighlightMaterial;
 
     private Grabbable grabComponent;
-    private List<Tuple<SnapPoint, SnapPoint>> snapPointsColliding = new();
+    #endregion
+
+    #region Properties
+    public List<SnapPoint> SnapPointsColliding { get; }
+    #endregion
 
     private void Start()
     {
@@ -36,48 +41,50 @@ public class BrickSnapping : MonoBehaviour
     {
         GetComponent<Rigidbody>().isKinematic = true;
         GetComponent<Collider>().enabled = false;
-        var collidedSnapPoints = snapPointsColliding.Select(p => p.Item2.transform.position).ToArray();
-        var position = FindMiddleVector(collidedSnapPoints);
-        transform.position = position;
+        var collidedSnapPointsPositions = snapPoints.Select(p => p.SnappedTo.transform.position).ToArray();
+        var otherBrick = snapPoints.Where(p => p.State == SnapPointState.CanBeSnapped).First().ParentBrick;
+        var position = FindMiddleVector(collidedSnapPointsPositions);
+        transform.rotation = otherBrick.rotation;
+        gameObject.transform.SetParent(otherBrick);
+        //transform.position = position;
     }
 
     void ParameterSnapPoints()
     {
-        snapPoints = GameObject.FindGameObjectsWithTag("SnapPoint").Where(r => r.transform.IsChildOf(gameObject.transform)).ToList();
+        snapPoints = GameObject.FindGameObjectsWithTag("SnapPoint")
+            .Where(r => r.transform.IsChildOf(gameObject.transform))
+            .Select(r => r.AddComponent<SnapPoint>())
+            .ToList();
         foreach (var snapPoint in snapPoints)
         {
-            var snapPointController = snapPoint.AddComponent<SnapPoint>();
             var snapPointType = snapPoint.transform.parent.tag == "SnapPointPositive" ? SnapPointPolarity.Positive : SnapPointPolarity.Negative;
-            snapPointController.ParameterSnapPoint(transform, snapHighlightMesh, snapHighlightMaterial, snapRadius, snapPointType);
+            snapPoint.ParameterSnapPoint(transform, snapHighlightMesh, snapHighlightMaterial, snapRadius, snapPointType);
         }
     }
 
     void HoldingBrick()
     {
-        if (grabComponent.BeingHeld)
+        if (!grabComponent.BeingHeld && grabComponent.LastDropTime >= Time.time - 0.1f)
         {
-            ClearSnapPoints();
-            foreach (var snapPoint in snapPoints.Select(r => r.GetComponent<SnapPoint>()))
+            var canBeSnappedPoints = snapPoints.Where(p => p.State == SnapPointState.CanBeSnapped).ToArray();
+            if (canBeSnappedPoints.Count() <= 0) return;
+            foreach (var snapPoint in canBeSnappedPoints)
             {
-                //var collidedSnapPoint = Physics.OverlapSphere(snapPoint.transform.position, snapRadius)
-                //    .Where(r => SnapPoint.CanBeSnapped(snapPoint, r))
-                //    .Select(r => r.GetComponent<SnapPoint>())
-                //    .FirstOrDefault();
-                //if (!collidedSnapPoint) continue;
-                //snapPoint.TemporarySnap(collidedSnapPoint);
-                //snapPointsColliding.Add(new Tuple<SnapPoint, SnapPoint>(snapPoint, collidedSnapPoint));
+                snapPoint.State = SnapPointState.Snapped;
             }
-        }
-        else
-        {
-            if (snapPointsColliding.Count > 0)
-            {
-                //Snap();
-            }
+            var newBrickPosition = FindMiddleVector(canBeSnappedPoints.Select(p => p.SnappedTo.transform.position).ToArray());
+            var otherBrick = canBeSnappedPoints.First().SnappedTo.ParentBrick;
+            GetComponent<Collider>().enabled = false;
+            GetComponent<Rigidbody>().isKinematic = true;
+            transform.rotation = otherBrick.rotation;
+            Bounds bounds = GetComponentInChildren<Renderer>().bounds;
+            Vector3 size = bounds.size;
+            transform.position = new Vector3(newBrickPosition.x, newBrickPosition.y + size.y/2, newBrickPosition.z);
+            transform.SetParent(otherBrick);
         }
     }
 
-    Vector3 FindMiddleVector(Vector3[] points)
+    Vector3 FindMiddleVector2(Vector3[] points)
     {
         Vector3 totalPoints = new();
         foreach (var point in points)
@@ -87,12 +94,23 @@ public class BrickSnapping : MonoBehaviour
         return totalPoints / points.Length;
     }
 
-    void ClearSnapPoints()
+    Vector3 FindMiddleVector(Vector3[] points)
     {
-        foreach (var snapPoints in snapPointsColliding)
+        float maxDistance = 0;
+        (Vector3, Vector3) twoVectors = new();
+        foreach (var firstPoint in points)
         {
-            snapPoints.Item1.TemporaryUnSnap();
+            foreach (var secondPoint in points)
+            {
+                if (firstPoint == secondPoint) continue;
+                float distance = Vector3.Distance(firstPoint, secondPoint);
+                if (maxDistance < distance)
+                {
+                    maxDistance = distance;
+                    twoVectors = (firstPoint, secondPoint);
+                }
+            }
         }
-        snapPointsColliding.Clear();
+        return (twoVectors.Item1 + twoVectors.Item2) / 2;
     }
 }

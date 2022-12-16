@@ -32,7 +32,6 @@ public class SnapPoint : MonoBehaviour
                     break;
                 case SnapPointState.NotSnapped:
                     TemporaryUnSnap();
-                    meshRenderer.enabled = false;
                     break;
                 case SnapPointState.CanBeSnapped:
                     meshRenderer.enabled = true;
@@ -42,17 +41,32 @@ public class SnapPoint : MonoBehaviour
             }
         } 
     }
+
+    public Transform ParentBrick  
+    { 
+        get { return this.parentBrick; } 
+    }
+
+    public SnapPoint SnappedTo
+    { 
+        get { return this.snappedTo; } 
+    }
     #endregion
 
     private void Update()
     {
+        if (State == SnapPointState.Snapped) return;
         var collider = Physics.OverlapSphere(transform.position, snapRadius)
             .Where(r => SnapPoint.CanBeSnapped(this, r)).FirstOrDefault();
-        if (collider != null)
+        if (collider != null && State == SnapPointState.NotSnapped)
         {
-            State = SnapPointState.CanBeSnapped;
+            TemporarySnap(collider.GetComponent<SnapPoint>());
+            meshRenderer.enabled = true;
         }
-        meshRenderer.enabled = collider == null ? false : true;
+        else if (collider == null && State == SnapPointState.CanBeSnapped)
+        {
+            TemporaryUnSnap();
+        }
     }
 
     public void ParameterSnapPoint(Transform parent, Mesh mesh, Material material, float snapRadius, SnapPointPolarity snapPointPolarity)
@@ -76,10 +90,14 @@ public class SnapPoint : MonoBehaviour
     {
         snappedTo = snapPoint;
         snapPoint.snappedTo = this;
+        state = SnapPointState.CanBeSnapped;
     }
 
     public void TemporaryUnSnap()
     {
+        state = SnapPointState.NotSnapped;
+        meshRenderer.enabled = false;
+        if (snappedTo == null) return;
         snappedTo.snappedTo = null;
         snappedTo = null;
     }
@@ -89,11 +107,11 @@ public class SnapPoint : MonoBehaviour
         try
         {
             var otherSnapPoint = other.gameObject.GetComponentInParent<SnapPoint>();
-            var beingHeld = otherSnapPoint.parentBrick.GetComponent<Grabbable>().BeingHeld || snapPoint.parentBrick.GetComponent<Grabbable>().BeingHeld;
+            var beingHeld = otherSnapPoint.parentBrick.GetComponent<Grabbable>() || snapPoint.parentBrick.GetComponent<Grabbable>().BeingHeld;
             var isNotSameCollider = other.transform != snapPoint.transform;
             var isSnapPoint = other.tag == "SnapPoint";
             var isNotFromSameBrick = otherSnapPoint.parentBrick != snapPoint.parentBrick;
-            var isFree = snapPoint.snappedTo == null && otherSnapPoint.snappedTo == null;
+            var isFree = snapPoint.State != SnapPointState.Snapped && otherSnapPoint.State != SnapPointState.Snapped;
             var isOpposite = snapPoint.polarity != otherSnapPoint.polarity;
             return beingHeld && isNotSameCollider && isSnapPoint && isNotFromSameBrick && isFree && isOpposite;
         }
