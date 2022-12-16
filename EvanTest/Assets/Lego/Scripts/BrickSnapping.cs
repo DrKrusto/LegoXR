@@ -47,7 +47,7 @@ public class BrickSnapping : MonoBehaviour
         foreach (var snapPoint in snapPoints)
         {
             var snapPointController = snapPoint.AddComponent<SnapPoint>();
-            var snapPointType = snapPoint.transform.parent.tag == "SnapPointPositive" ? SnapPointType.Positive : SnapPointType.Negative;
+            var snapPointType = snapPoint.transform.parent.tag == "SnapPointPositive" ? SnapPointPolarity.Positive : SnapPointPolarity.Negative;
             snapPointController.ParameterSnapPoint(transform, snapHighlightMesh, snapHighlightMaterial, snapRadius, snapPointType);
         }
     }

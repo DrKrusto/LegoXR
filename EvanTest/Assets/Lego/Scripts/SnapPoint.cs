@@ -7,22 +7,55 @@ using UnityEngine;
 
 public class SnapPoint : MonoBehaviour
 {
+    #region Variables
     private MeshFilter meshFilter;
     private MeshRenderer meshRenderer;
     private SphereCollider sphereCollider;
     private Transform parentBrick;
-    private SnapPointType snapPointType;
+    private SnapPointPolarity polarity;
+    private SnapPointState state;
     private float snapRadius = .1f;
     protected SnapPoint snappedTo;
+    #endregion
+
+    #region Properties
+    public SnapPointState State 
+    {
+        get { return this.state; }
+        set
+        {
+            state = value;
+            switch (value)
+            {
+                case SnapPointState.Snapped:
+                    meshRenderer.enabled = false;
+                    break;
+                case SnapPointState.NotSnapped:
+                    TemporaryUnSnap();
+                    meshRenderer.enabled = false;
+                    break;
+                case SnapPointState.CanBeSnapped:
+                    meshRenderer.enabled = true;
+                    break;
+                default:
+                    break;
+            }
+        } 
+    }
+    #endregion
 
     private void Update()
     {
         var collider = Physics.OverlapSphere(transform.position, snapRadius)
             .Where(r => SnapPoint.CanBeSnapped(this, r)).FirstOrDefault();
+        if (collider != null)
+        {
+            State = SnapPointState.CanBeSnapped;
+        }
         meshRenderer.enabled = collider == null ? false : true;
     }
 
-    public void ParameterSnapPoint(Transform parent, Mesh mesh, Material material, float snapRadius, SnapPointType snapPointType)
+    public void ParameterSnapPoint(Transform parent, Mesh mesh, Material material, float snapRadius, SnapPointPolarity snapPointPolarity)
     {
         meshFilter = gameObject.AddComponent<MeshFilter>();
         meshRenderer = gameObject.AddComponent<MeshRenderer>();
@@ -30,13 +63,13 @@ public class SnapPoint : MonoBehaviour
         sphereCollider.isTrigger = true;
         meshFilter.mesh = mesh;
         meshRenderer.material = material;
-        meshRenderer.enabled = false;
         meshRenderer.receiveShadows = false;
         meshRenderer.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
         sphereCollider.radius = snapRadius;
         parentBrick = parent;
         transform.localScale *= (snapRadius*5);
-        this.snapPointType = snapPointType;
+        polarity = snapPointPolarity;
+        State = SnapPointState.NotSnapped;
     }
 
     public void TemporarySnap(SnapPoint snapPoint)
@@ -61,7 +94,7 @@ public class SnapPoint : MonoBehaviour
             var isSnapPoint = other.tag == "SnapPoint";
             var isNotFromSameBrick = otherSnapPoint.parentBrick != snapPoint.parentBrick;
             var isFree = snapPoint.snappedTo == null && otherSnapPoint.snappedTo == null;
-            var isOpposite = snapPoint.snapPointType != otherSnapPoint.snapPointType;
+            var isOpposite = snapPoint.polarity != otherSnapPoint.polarity;
             return beingHeld && isNotSameCollider && isSnapPoint && isNotFromSameBrick && isFree && isOpposite;
         }
         catch
@@ -71,8 +104,15 @@ public class SnapPoint : MonoBehaviour
     }
 }
 
-public enum SnapPointType
+public enum SnapPointPolarity
 {
     Positive,
     Negative
+}
+
+public enum SnapPointState
+{
+    Snapped,
+    NotSnapped,
+    CanBeSnapped
 }
