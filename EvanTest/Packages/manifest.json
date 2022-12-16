@@ -14,6 +14,10 @@
     "com.unity.visualscripting": "1.7.8",
     "com.unity.xr.management": "4.2.1",
     "com.unity.xr.oculus": "3.2.1",
+<<<<<<< HEAD:EvanTest/Packages/manifest.json
+=======
+    "com.unity.xr.openxr": "1.5.3",
+>>>>>>> ec9931f4db50c614457351692124ff304f8ee46b:POC/Packages/manifest.json
     "com.unity.modules.ai": "1.0.0",
     "com.unity.modules.androidjni": "1.0.0",
     "com.unity.modules.animation": "1.0.0",

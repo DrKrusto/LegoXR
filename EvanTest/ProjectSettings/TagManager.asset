@@ -4,8 +4,15 @@
 TagManager:
   serializedVersion: 2
   tags:
+<<<<<<< HEAD:EvanTest/ProjectSettings/TagManager.asset
   - SnapPoint
   - Brick
+=======
+  - Lego
+  - Spawn
+  - LegoPrefab
+  - Hand
+>>>>>>> ec9931f4db50c614457351692124ff304f8ee46b:POC/ProjectSettings/TagManager.asset
   layers:
   - Default
   - TransparentFX
