@@ -2,13 +2,15 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using System.Linq;
+using BNG;
 
 public class UiLego : MonoBehaviour
 {
     public GameObject[] Lego;
     public Material[] LegoMaterial;
     private int index = 0;
-
+    public Transform PlayerTransform;
+    public float RotateSpeed;
     public int Index 
     { 
         get { return index; }
@@ -27,13 +29,18 @@ public class UiLego : MonoBehaviour
     // Update is called once per frame
     void Update()
     {
+        GameObject[] LegoPrefab = GameObject.FindGameObjectsWithTag("LegoPrefab");
+        foreach (var lego in LegoPrefab)
+        {
+            lego.transform.Rotate(0,RotateSpeed,0);
+        }
     }
 
     void ChangePage(int index)
     {
         var positionLego = GameObject.FindGameObjectsWithTag("Spawn").Select(r => r.gameObject.transform).ToArray();
-        var legoPrefab = GameObject.FindGameObjectsWithTag("LegoPrefab");
-        foreach (var lego in legoPrefab)
+        GameObject[] LegoPrefab = GameObject.FindGameObjectsWithTag("LegoPrefab");
+        foreach (var lego in LegoPrefab)
         {
             Destroy(lego);
         }
@@ -42,6 +49,12 @@ public class UiLego : MonoBehaviour
         {
             Instantiate(Lego[i], positionLego[i - index * 15].position, Quaternion.Euler(new Vector3(0, 90, 0)), positionLego[i - index * 15]);
         }
+        LegoPrefab = GameObject.FindGameObjectsWithTag("LegoPrefab");
+        foreach (var lego in LegoPrefab)
+        {
+            lego.GetComponent<Rigidbody>().useGravity = false;
+        }
+
     }
 
     public void IndexPlus()
@@ -67,9 +80,9 @@ public class UiLego : MonoBehaviour
         }
     }
 
-    public void ActivateUI()
+    public void DesActivateUI()
     {
-        this.gameObject.SetActive(true);
+        this.gameObject.SetActive(!this.gameObject.activeSelf);
     }
 
     public void DesactivateUI()
@@ -85,5 +98,20 @@ public class UiLego : MonoBehaviour
         }
         ChangePage(Index);
 
+    }
+
+    public void HandInstantiate(int pos)
+    {
+        //primaryGrabOffset.GetComponent<GrabPoint>().HandPose
+        GameObject newLegoGO;
+        newLegoGO = Instantiate(Lego[pos+Index*15],PlayerTransform.position + PlayerTransform.forward, Quaternion.identity);
+        newLegoGO.tag = "Lego";
+        newLegoGO.GetComponent<MeshCollider>().enabled = true;
+        var grab = newLegoGO.GetComponent<Grabbable>();
+        grab.enabled = true;
+        newLegoGO.GetComponent<Rigidbody>().isKinematic = true;
+        newLegoGO.transform.localScale = new Vector3(10, 10, 10);
+  
+        DesactivateUI();
     }
 }
